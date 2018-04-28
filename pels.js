@@ -1,6 +1,8 @@
 const pels = (function() {
   const handler = {
+    data: {},
     queue: [],
+    renders: [],
     get: function(obj, prop) {
       if (prop === '$') {
         return handler.queue.pop();
@@ -25,6 +27,19 @@ const pels = (function() {
             },
           },
         );
+      } else if (prop === '$data') {
+        return new Proxy(handler.data, {
+          get: (obj, key) => {
+            return handler.data[key];
+          },
+          set: (obj, key, value) => {
+            handler.data[key] = value;
+
+            for (let render of handler.renders) {
+              render();
+            }
+          },
+        });
       } else if (prop === '$attrs') {
         const elem = handler.queue.pop();
 
@@ -68,6 +83,11 @@ const pels = (function() {
           break;
         case '$append':
           elem.appendChild(value);
+          break;
+        case '$render':
+          const render = () => elem.innerHTML = value(handler.data);
+          handler.renders.push(render);
+          render();
           break;
       }
     },
