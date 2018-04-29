@@ -49,7 +49,64 @@ const pels = (function() {
     elements: {},
     get: function(obj, prop) {
       if (prop === '$') {
-        return handler.queue.pop();
+        const elem = [...handler.queue.pop()];
+
+        return elem.length == 1 ? elem[0] : elem;
+      } else if (prop === '$eq') {
+        let elem = [...handler.queue.pop()];
+
+        return index => {
+          elem = elem[index];
+
+          return new Proxy(
+            {},
+            {
+              get: (obj, prop) => {
+                if (prop == '$') {
+                  return elem;
+                } else if (prop == '$attrs') {
+                  return $attrs(elem);
+                } else if (prop == '$set') {
+                  return key => {
+                    handler.elements[key] = elem;
+                  };
+                }
+              },
+              set: (obj, key, value) => {
+                switchCase(elem, key, value);
+              },
+            },
+          );
+        };
+      } else if (prop === '$each') {
+        let elem = [...handler.queue.pop()];
+
+        return fn => {
+          elem
+            .map(
+              el =>
+                new Proxy(
+                  {},
+                  {
+                    get: (obj, prop) => {
+                      if (prop == '$') {
+                        return el;
+                      } else if (prop == '$attrs') {
+                        return $attrs(el);
+                      } else if (prop == '$set') {
+                        return key => {
+                          handler.elements[key] = el;
+                        };
+                      }
+                    },
+                    set: (obj, key, value) => {
+                      switchCase(el, key, value);
+                    },
+                  },
+                ),
+            )
+            .map((el, index) => fn(el, index));
+        };
       } else if (prop === '$elem') {
         return new Proxy(
           {},
@@ -83,7 +140,7 @@ const pels = (function() {
         };
       } else if (prop === '$get') {
         return key => {
-          const elem = handler.elements[key];
+          let elem = handler.elements[key];
 
           return new Proxy(
             {},
@@ -93,6 +150,10 @@ const pels = (function() {
                   return elem;
                 } else if (prop == '$attrs') {
                   return $attrs(elem);
+                } else if (prop == '$set') {
+                  return key => {
+                    handler.elements[key] = elem;
+                  };
                 }
               },
               set: (obj, key, value) => {
@@ -115,13 +176,26 @@ const pels = (function() {
           },
         });
       } else if (prop === '$attrs') {
-        const elem = handler.queue.pop();
+        let elem = [...handler.queue.pop()];
 
-        $attrs(elem);
+        const len = elem.length;
+
+        elem = len == 1 ? elem[0] : elem;
+
+        if (len) return $attrs(elem);
+        else return null;
       } else {
         let elem = handler.queue.pop();
 
-        elem = elem ? elem.querySelector(prop) : document.querySelector(prop);
+        if (elem) {
+          if ([...elem].length == 1) {
+            elem = [...elem][0];
+          }
+        }
+
+        elem = elem
+          ? elem.querySelectorAll(prop)
+          : document.querySelectorAll(prop);
 
         handler.queue.push(elem);
 
