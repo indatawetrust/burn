@@ -1,5 +1,4 @@
-# pels
-Proxy Element Selector
+# burn
 
 ```js
 burn(($, div, canvas) => {
@@ -48,6 +47,7 @@ burn(($, div, ul, li, button, a) => {
 })
 ```
 
+[demo](http://fiddle.jshell.net/indatawetrust/vcjx1o2o/1/show/light/)
 ```js
 burn(($, div, table, tr, td, th, textarea, button) => {
   var data = [];
@@ -65,7 +65,11 @@ burn(($, div, table, tr, td, th, textarea, button) => {
         var _th = [];
 
         for (let k in user) {
-          _th.push(th(user[k]).attr({style: 'border:1px solid #000'}));
+          _th.push(
+            th(
+              typeof user[k] == 'object' ? JSON.stringify(user[k]) : user[k],
+            ).attr({style: 'border:1px solid #000'}),
+          );
         }
 
         return tr(..._th);
