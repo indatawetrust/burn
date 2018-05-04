@@ -1,215 +1,82 @@
-const pels = (function() {
-  const switchCase = (elem, key, value) => {
-    switch (key) {
-      case '$text':
-        elem.innerText = value;
-        break;
-      case '$textReplace':
-        elem.innerText = elem.innerText.replace(...value);
-        break;
-      case '$html':
-        elem.innerHTML = value;
-        break;
-      case '$on':
-        elem.addEventListener(...value);
-        break;
-      case '$append':
-        elem.appendChild(value);
-        break;
-      case '$render':
-        const render = () => elem.innerHTML = value(handler.data);
-        handler.renders.push(render);
-        render();
-        break;
-    }
-  };
+var _typeof = typeof Symbol === "function" && typeof Symbol.iterator === "symbol" ? function (obj) { return typeof obj; } : function (obj) { return obj && typeof Symbol === "function" && obj.constructor === Symbol && obj !== Symbol.prototype ? "symbol" : typeof obj; };
 
-  const $attrs = elem => {
-    const attrs = [...elem.attributes].map(({name, value}) => ({
-      [name]: value,
-    }));
+function _toConsumableArray(arr) { if (Array.isArray(arr)) { for (var i = 0, arr2 = Array(arr.length); i < arr.length; i++) { arr2[i] = arr[i]; } return arr2; } else { return Array.from(arr); } }
 
-    return new Proxy(
-      attrs.length ? attrs.reduce((a, b) => ({...a, ...b})) : {},
-      {
-        set: (obj, key, value) => {
-          elem.setAttribute(key, value);
-        },
-        get: (obj, key) => {
-          return elem.getAttribute(key);
-        },
-      },
-    );
-  };
+var burn = function () {
+  var COMMENTS = /((\/\/.*$)|(\/\*[\s\S]*?\*\/))/mg;
+  var DEFAULT_PARAMS = /=[^,]+/mg;
+  var FAT_ARROWS = /=>.*$/mg;
 
-  const handler = {
-    data: {},
-    queue: [],
-    renders: [],
-    elements: {},
-    get: function(obj, prop) {
-      if (prop === '$') {
-        const elem = [...handler.queue.pop()];
+  function getParameterNames(fn) {
+    var code = fn.toString().replace(COMMENTS, '').replace(FAT_ARROWS, '').replace(DEFAULT_PARAMS, '');
 
-        return elem.length == 1 ? elem[0] : elem;
-      } else if (prop === '$eq') {
-        let elem = [...handler.queue.pop()];
+    var result = code.slice(code.indexOf('(') + 1, code.indexOf(')')).match(/([^\s,]+)/g);
 
-        return index => {
-          elem = elem[index];
+    return result === null ? [] : result;
+  }
 
-          return new Proxy(
-            {},
-            {
-              get: (obj, prop) => {
-                if (prop == '$') {
-                  return elem;
-                } else if (prop == '$attrs') {
-                  return $attrs(elem);
-                } else if (prop == '$set') {
-                  return key => {
-                    handler.elements[key] = elem;
-                  };
-                }
-              },
-              set: (obj, key, value) => {
-                switchCase(elem, key, value);
-              },
-            },
-          );
-        };
-      } else if (prop === '$each') {
-        let elem = [...handler.queue.pop()];
+  return function (f) {
+    var _this = this;
 
-        return fn => {
-          elem
-            .map(
-              el =>
-                new Proxy(
-                  {},
-                  {
-                    get: (obj, prop) => {
-                      if (prop == '$') {
-                        return el;
-                      } else if (prop == '$attrs') {
-                        return $attrs(el);
-                      } else if (prop == '$set') {
-                        return key => {
-                          handler.elements[key] = el;
-                        };
-                      }
-                    },
-                    set: (obj, key, value) => {
-                      switchCase(el, key, value);
-                    },
-                  },
-                ),
-            )
-            .map((el, index) => fn(el, index));
-        };
-      } else if (prop === '$elem') {
-        return new Proxy(
-          {},
-          {
-            get: (obj, key) => {
-              return (text, attrs, name) => {
-                const elem = document.createElement(key);
+    var params = getParameterNames(f);
+    var elements = {};
 
-                elem.innerText = text;
-
-                for (let key in attrs) {
-                  const value = attrs[key];
-
-                  elem.setAttribute(key, value);
-                }
-
-                if (name) {
-                  handler.elements[name] = elem;
-                }
-
-                return elem;
-              };
-            },
+    params = params.map(function (elem) {
+      if (elem == '$') {
+        return {
+          get: function get(key) {
+            return elements[key];
           },
-        );
-      } else if (prop === '$set') {
-        const elem = handler.queue.pop();
-
-        return key => {
-          handler.elements[key] = elem;
+          actions: {}
         };
-      } else if (prop === '$get') {
-        return key => {
-          let elem = handler.elements[key];
-
-          return new Proxy(
-            {},
-            {
-              get: (obj, prop) => {
-                if (prop == '$') {
-                  return elem;
-                } else if (prop == '$attrs') {
-                  return $attrs(elem);
-                } else if (prop == '$set') {
-                  return key => {
-                    handler.elements[key] = elem;
-                  };
-                }
-              },
-              set: (obj, key, value) => {
-                switchCase(elem, key, value);
-              },
-            },
-          );
-        };
-      } else if (prop === '$data') {
-        return new Proxy(handler.data, {
-          get: (obj, key) => {
-            return handler.data[key];
-          },
-          set: (obj, key, value) => {
-            handler.data[key] = value;
-
-            for (let render of handler.renders) {
-              render();
-            }
-          },
-        });
-      } else if (prop === '$attrs') {
-        let elem = [...handler.queue.pop()];
-
-        const len = elem.length;
-
-        elem = len == 1 ? elem[0] : elem;
-
-        if (len) return $attrs(elem);
-        else return null;
       } else {
-        let elem = handler.queue.pop();
-
-        if (elem) {
-          if ([...elem].length == 1) {
-            elem = [...elem][0];
+        return function () {
+          for (var _len = arguments.length, item = Array(_len), _key = 0; _key < _len; _key++) {
+            item[_key] = arguments[_key];
           }
-        }
 
-        elem = elem
-          ? elem.querySelectorAll(prop)
-          : document.querySelectorAll(prop);
+          var _elem = document.createElement(elem);
 
-        handler.queue.push(elem);
+          item.map(function (item) {
+            if (item instanceof Element) {
+              _elem.appendChild(item);
+            } else {
+              switch (typeof i === 'undefined' ? 'undefined' : _typeof(i)) {
+                case 'object':
+                  _elem.innerHTML = JSON.stringify(item);
+                  break;
+                default:
+                  _elem.innerHTML = item;
+                  break;
+              }
+            }
+          });
 
-        return pels;
+          _elem.on = function (event, listener) {
+            _this.addEventListener(event, listener);
+
+            return elem;
+          };
+
+          _elem.attr = function (attrs) {
+            for (var k in attrs) {
+              var v = attrs[k];
+              _elem.setAttribute(k, v);
+            }
+            return _elem;
+          };
+
+          _elem.set = function (key) {
+            elements[key] = _elem;
+
+            return _elem;
+          };
+
+          return _elem;
+        };
       }
-    },
-    set: (obj, key, value) => {
-      const elem = handler.queue.pop();
+    });
 
-      switchCase(elem, key, value);
-    },
+    return f.apply(undefined, _toConsumableArray(params));
   };
-
-  const pels = new Proxy({}, handler);
-
-  return pels;
-})();
+}();
