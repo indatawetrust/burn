@@ -21,3 +21,29 @@ burn(($, div, canvas) => {
 
 })
 ```
+
+```js
+burn(($, div, ul, li, button, a) => {
+	
+  var getLi = () => li(
+                      +new Date()+' ',
+                      a('x')
+                      .attr({ 'href': '#' })
+                      .on('click', e => {
+                        e.target.parentElement.remove()
+                      })
+                    )
+  
+  return div(
+    ul(
+      getLi()
+    )
+    .set('list'),
+    button('add')
+    .on('click' , e => {
+      $.get('list').appendChild(getLi())
+    })
+  )
+
+})
+```
