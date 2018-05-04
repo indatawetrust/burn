@@ -76,4 +76,43 @@ var burn = function (f) {
   
   return f(...params)
   
+}    switch (typeof i) {
+              case 'object':
+                _elem.innerHTML = JSON.stringify(item)
+                break
+              default:
+                _elem.innerHTML = item
+                break
+            }
+          }
+        })
+        
+        _elem.on = (event, listener) => {
+        	_elem.addEventListener(event, listener)
+       		
+          return _elem
+        }
+        
+        _elem.attr = attrs => {
+        	for (let k in attrs) {
+          	const v = attrs[k]
+            _elem.setAttribute(k, v)
+          }
+          return _elem
+        }
+        
+        _elem.set = key => {
+        	elements[key] = _elem
+       		
+          return _elem
+        }
+        
+        return _elem
+      }
+    }
+  
+  })
+  
+  return f(...params)
+  
 }
